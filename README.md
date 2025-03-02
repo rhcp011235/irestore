@@ -67,3 +67,5 @@ There are a few changes in iOS 10.2.  The Manifest database itself is encrypted,
 Further, the keybag has a second round of PBKDF2 with different parameters and a sha256 hash function. This one takes about 10 seconds in Go, so the code now prints the decrypted key in hex. If you provide this hex key instead of your password, you can skip the long key derivation step.
 
 (iOS 10.2 details came from a github thread.)
+
+blah
