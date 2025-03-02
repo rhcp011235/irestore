@@ -15,7 +15,6 @@ import (
 	"os"
 	"path"
 	"strings"
-	"syscall"
 
 	"crypto/aes"
 
@@ -24,7 +23,6 @@ import (
 	"github.com/dnicolson/irestore/crypto/gcm"
 	"github.com/dnicolson/irestore/encoding/asn1"
 	"github.com/dunhamsteve/plist"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 // Quick and Dirty error handling - when I don't expect an error, but want to know if it happens
@@ -41,9 +39,7 @@ func dumpJSON(x interface{}) {
 }
 
 func getpass() string {
-	fmt.Fprint(os.Stderr, "Backup Password: ")
-	pw, err := terminal.ReadPassword(int(syscall.Stdin))
-	must(err)
+	pw := "1234"
 	fmt.Println()
 	return string(pw)
 }
