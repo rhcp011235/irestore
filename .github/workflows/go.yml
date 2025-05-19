@@ -9,8 +9,7 @@ jobs:
   build-macos:
     runs-on: macos-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -19,11 +18,11 @@ jobs:
 
       - name: Build macOS ARM64
         run: |
-          CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o irestore_darwin_arm64
+          CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o irestore_darwin_arm64 ./cmd/irestore
 
       - name: Build macOS AMD64
         run: |
-          CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o irestore_darwin_amd64
+          CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o irestore_darwin_amd64 ./cmd/irestore
 
       - name: Upload macOS Artifacts
         uses: actions/upload-artifact@v4
@@ -36,8 +35,7 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -46,7 +44,7 @@ jobs:
 
       - name: Build Linux AMD64 (no CGO)
         run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o irestore_linux_amd64
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o irestore_linux_amd64 ./cmd/irestore
 
       - name: Upload Linux Artifacts
         uses: actions/upload-artifact@v4
@@ -57,8 +55,7 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -70,7 +67,7 @@ jobs:
           $env:CGO_ENABLED="0"
           $env:GOOS="windows"
           $env:GOARCH="amd64"
-          go build -o irestore_windows_amd64.exe
+          go build -o irestore_windows_amd64.exe ./cmd/irestore
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
