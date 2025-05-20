@@ -93,7 +93,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Needed for changelog generation
+          fetch-depth: 0  # Required for full git log
 
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
@@ -109,18 +109,21 @@ jobs:
           CURRENT_TAG="${GITHUB_REF#refs/tags/}"
           PREV_TAG=$(git tag --sort=-creatordate | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "$CURRENT_TAG" | head -n 1 || echo "")
           echo "Previous tag: $PREV_TAG"
+
           if [ -z "$PREV_TAG" ]; then
-            echo "CHANGELOG=Initial release" >> $GITHUB_ENV
+            echo "body=Initial release" >> $GITHUB_OUTPUT
           else
-            echo "CHANGELOG<<EOF" >> $GITHUB_ENV
-            git log --pretty=format:"* %s (%an)" "$PREV_TAG"..HEAD >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
+            changelog=$(git log --pretty=format:"* %s (%an)" "$PREV_TAG"..HEAD)
+            changelog="${changelog//'%'/'%25'}"
+            changelog="${changelog//$'\n'/'%0A'}"
+            changelog="${changelog//$'\r'/'%0D'}"
+            echo "body=$changelog" >> $GITHUB_OUTPUT
           fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: dist/**/*.tar.gz
-          body: ${{ env.CHANGELOG }}
+          body: ${{ steps.changelog.outputs.body }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
