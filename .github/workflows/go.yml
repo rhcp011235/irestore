@@ -3,7 +3,7 @@ name: Build & Release All Platforms
 on:
   push:
     tags:
-      - "v*.*.*"   # Triggers only on version tags like v1.0.0
+      - "v*.*.*"   # Trigger on version tags like v1.0.0
 
 jobs:
   build-macos:
@@ -19,20 +19,21 @@ jobs:
       - name: Build macOS ARM64
         run: |
           CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o irestore_darwin_arm64 ./cmd/irestore
-          zip irestore_darwin_arm64.zip irestore_darwin_arm64
 
       - name: Build macOS AMD64
         run: |
           CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o irestore_darwin_amd64 ./cmd/irestore
-          zip irestore_darwin_amd64.zip irestore_darwin_amd64
+
+      - name: Create macOS Universal Binary
+        run: |
+          lipo -create -output irestore_macos_universal irestore_darwin_amd64 irestore_darwin_arm64
+          zip irestore_macos_universal.zip irestore_macos_universal
 
       - name: Upload macOS Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macOS
-          path: |
-            irestore_darwin_arm64.zip
-            irestore_darwin_amd64.zip
+          path: irestore_macos_universal.zip
 
   build-linux:
     runs-on: ubuntu-latest
