@@ -1,4 +1,4 @@
-kname: Build & Release All Platforms
+name: Build & Release All Platforms
 
 on:
   push:
