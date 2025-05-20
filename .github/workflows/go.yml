@@ -3,7 +3,7 @@ name: Build & Release All Platforms
 on:
   push:
     tags:
-      - "v*.*.*"   # Trigger only on version tags like v1.0.0
+      - "v*.*.*"   # Triggers only on version tags like v1.0.0
 
 jobs:
   build-macos:
@@ -99,4 +99,4 @@ jobs:
         with:
           files: dist/**/*.zip
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
