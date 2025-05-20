@@ -1,9 +1,9 @@
-name: Build All Platforms
+name: Build & Release All Platforms
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    tags:
+      - "v*.*.*"   # Trigger only on version tags like v1.0.0
 
 jobs:
   build-macos:
@@ -19,18 +19,20 @@ jobs:
       - name: Build macOS ARM64
         run: |
           CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o irestore_darwin_arm64 ./cmd/irestore
+          zip irestore_darwin_arm64.zip irestore_darwin_arm64
 
       - name: Build macOS AMD64
         run: |
           CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o irestore_darwin_amd64 ./cmd/irestore
+          zip irestore_darwin_amd64.zip irestore_darwin_amd64
 
       - name: Upload macOS Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macOS
           path: |
-            irestore_darwin_arm64
-            irestore_darwin_amd64
+            irestore_darwin_arm64.zip
+            irestore_darwin_amd64.zip
 
   build-linux:
     runs-on: ubuntu-latest
@@ -45,12 +47,13 @@ jobs:
       - name: Build Linux AMD64 (no CGO)
         run: |
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o irestore_linux_amd64 ./cmd/irestore
+          zip irestore_linux_amd64.zip irestore_linux_amd64
 
       - name: Upload Linux Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Linux
-          path: irestore_linux_amd64
+          path: irestore_linux_amd64.zip
 
   build-windows:
     runs-on: windows-latest
@@ -68,9 +71,32 @@ jobs:
           $env:GOOS="windows"
           $env:GOARCH="amd64"
           go build -o irestore_windows_amd64.exe ./cmd/irestore
+          Compress-Archive -Path irestore_windows_amd64.exe -DestinationPath irestore_windows_amd64.zip
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Windows
-          path: irestore_windows_amd64.exe
+          path: irestore_windows_amd64.zip
+
+  release:
+    needs: [build-macos, build-linux, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+
+      - name: List downloaded files
+        run: ls -R dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/**/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
