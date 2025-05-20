@@ -1,9 +1,9 @@
-name: Build & Release All Platforms
+kname: Build & Release All Platforms
 
 on:
   push:
     tags:
-      - "v*.*.*"   # Trigger on version tags like v1.0.0
+      - "v*.*.*"   # Trigger only on version tags like v1.0.0
 
 jobs:
   build-macos:
@@ -24,19 +24,22 @@ jobs:
         run: |
           CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o irestore_darwin_amd64 ./cmd/irestore
 
-      - name: Create macOS Universal Binary
+      - name: Create Universal Binary & Archive
         run: |
           lipo -create -output irestore_macos_universal irestore_darwin_amd64 irestore_darwin_arm64
-          zip irestore_macos_universal.zip irestore_macos_universal
+          tar -czf irestore_macos_universal.tar.gz irestore_macos_universal
 
-      - name: Upload macOS Artifacts
+      - name: Upload macOS Artifact
         uses: actions/upload-artifact@v4
         with:
           name: macOS
-          path: irestore_macos_universal.zip
+          path: irestore_macos_universal.tar.gz
 
   build-linux:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
     steps:
       - uses: actions/checkout@v3
 
@@ -45,19 +48,22 @@ jobs:
         with:
           go-version: '1.22.2'
 
-      - name: Build Linux AMD64 (no CGO)
+      - name: Build for Linux ${{ matrix.arch }}
         run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o irestore_linux_amd64 ./cmd/irestore
-          zip irestore_linux_amd64.zip irestore_linux_amd64
+          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.arch }} go build -o irestore_linux_${{ matrix.arch }} ./cmd/irestore
+          tar -czf irestore_linux_${{ matrix.arch }}.tar.gz irestore_linux_${{ matrix.arch }}
 
-      - name: Upload Linux Artifacts
+      - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Linux
-          path: irestore_linux_amd64.zip
+          name: Linux-${{ matrix.arch }}
+          path: irestore_linux_${{ matrix.arch }}.tar.gz
 
   build-windows:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
     steps:
       - uses: actions/checkout@v3
 
@@ -66,19 +72,19 @@ jobs:
         with:
           go-version: '1.22.2'
 
-      - name: Build Windows AMD64 (no CGO)
+      - name: Build for Windows ${{ matrix.arch }}
         run: |
           $env:CGO_ENABLED="0"
           $env:GOOS="windows"
-          $env:GOARCH="amd64"
-          go build -o irestore_windows_amd64.exe ./cmd/irestore
-          Compress-Archive -Path irestore_windows_amd64.exe -DestinationPath irestore_windows_amd64.zip
+          $env:GOARCH="${{ matrix.arch }}"
+          go build -o irestore_windows_${{ matrix.arch }}.exe ./cmd/irestore
+          tar -czf irestore_windows_${{ matrix.arch }}.tar.gz irestore_windows_${{ matrix.arch }}.exe
 
-      - name: Upload Windows Artifacts
+      - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Windows
-          path: irestore_windows_amd64.zip
+          name: Windows-${{ matrix.arch }}
+          path: irestore_windows_${{ matrix.arch }}.tar.gz
 
   release:
     needs: [build-macos, build-linux, build-windows]
@@ -95,9 +101,17 @@ jobs:
       - name: List downloaded files
         run: ls -R dist/
 
+      - name: Generate changelog from commits
+        id: changelog
+        run: |
+          echo "CHANGELOG<<EOF" >> $GITHUB_ENV
+          git log --pretty=format:"* %s (%an)" $(git describe --tags --abbrev=0)^..HEAD >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: dist/**/*.zip
+          files: dist/**/*.tar.gz
+          body: ${{ env.CHANGELOG }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
